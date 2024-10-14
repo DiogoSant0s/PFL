@@ -114,7 +114,81 @@ listar :: Arv a -> [a]
 listar Vazia = []
 listar (No x esq dir) = listar dir ++ [x] ++ listar esq
 
+-- 4.3
+nivel :: Int -> Arv a -> [a]
+nivel 0 (No x _ _) = [x]
+nivel n (No _ esq dir) = nivel (n - 1) esq ++ nivel (n - 1) dir
+
+-- 4.4
+-- a
+inserir :: Ord a => a -> Arv a -> Arv a
+inserir x Vazia = No x Vazia Vazia
+inserir x (No y esq dir)  | x == y = No y esq dir             -- já ocorre; não insere
+                          | x < y = No y (inserir x esq) dir  -- insere à esquerda
+                          | x > y = No y esq (inserir x dir)  -- insere à direita
+
+construir :: [a] -> Arv a
+construir [] = Vazia
+construir xs = No x (construir xsa) (construir xsb) where n = length xs `div`2 xsa = take n xs x:xsb = drop n xs
+
 -- 4.5
 mapArv :: (a -> b) -> Arv a -> Arv b
 mapArv f Vazia = Vazia
 mapArv f (No x esq dir) = No (f x) (mapArv f esq) (mapArv f dir)
+
+-- 4.6
+-- a
+
+
+-- b
+
+
+-- 4.7 and 4.8
+data Expr = Lit Integer | Op Ops Expr Expr | If BExp Expr Expr
+
+data Ops = Add | Sub | Mul | Div | Mod
+
+data BExp = BoolLit Bool | And BExp BExp | Not BExp | Equal BExp BExp | Greater Expr Expr
+
+eval :: Expr -> Integer
+eval (Lit n) = n
+eval (Op op e1 e2) = opEval op (eval e1) (eval e2)
+eval (If b e1 e2) = if beval b then eval e1 else eval e2
+
+beval :: BExp -> Bool
+beval (BoolLit b) = b
+beval (And e1 e2) = beval e1 && beval e2
+beval (Not e) = not (beval e)
+beval (Equal e1 e2) = beval e1 == beval e2
+beval (Greater e1 e2) = eval e1 > eval e2
+
+opEval :: Ops -> Integer -> Integer -> Integer
+opEval Add = (+)
+opEval Sub = (-)
+opEval Mul = (*)
+opEval Div = div
+opEval Mod = mod
+
+showExpr :: Expr -> String
+showExpr (Lit n) = show n
+showExpr (Op op e1 e2) = "(" ++ showExpr e1 ++ " " ++ showOps op ++ " " ++ showExpr e2 ++ ")"
+showExpr (If b e1 e2) = "if " ++ showBExp b ++ " then " ++ showExpr e1 ++ " else " ++ showExpr e2
+
+showBExp :: BExp -> String
+showBExp (BoolLit b) = show b
+showBExp (And e1 e2) = "(" ++ showBExp e1 ++ " && " ++ showBExp e2 ++ ")"
+showBExp (Not e) = "not " ++ showBExp e
+showBExp (Equal e1 e2) = "(" ++ showBExp e1 ++ " == " ++ showBExp e2 ++ ")"
+showBExp (Greater e1 e2) = "(" ++ showExpr e1 ++ " > " ++ showExpr e2 ++ ")"
+
+showOps :: Ops -> String
+showOps Add = "+"
+showOps Sub = "-"
+showOps Mul = "*"
+showOps Div = "/"
+showOps Mod = "%"
+
+sizeExpr :: Expr -> Integer
+sizeExpr (Lit _) = 1
+sizeExpr (Op _ e1 e2) = sizeExpr e1 + sizeExpr e2 + 1
+sizeExpr (If _ e1 e2) = sizeExpr e1 + sizeExpr e2 + 1

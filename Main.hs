@@ -93,7 +93,7 @@ elemR x xs = any (x ==) xs
 palavras :: String -> [String]
 palavras [] = []
 palavras (' ' : xs) = palavras xs
-palavras xs = (takeWhile (/= ' ') xs) : palavras (dropWhile (/= ' ') xs)
+palavras xs = takeWhile (/= ' ') xs : palavras (dropWhile (/= ' ') xs)
 
 -- b
 despalavras :: [String] -> String
@@ -127,9 +127,12 @@ inserir x (No y esq dir)  | x == y = No y esq dir             -- já ocorre; nã
                           | x < y = No y (inserir x esq) dir  -- insere à esquerda
                           | x > y = No y esq (inserir x dir)  -- insere à direita
 
-construir :: [a] -> Arv a
-construir [] = Vazia
-construir xs = No x (construir xsa) (construir xsb) where n = length xs `div`2 xsa = take n xs x:xsb = drop n xs
+--construir :: [a] -> Arv a
+--construir [] = Vazia
+--construir xs = No x (construir xsa) (construir xsb) 
+--  where n = length (xs ´div´ 2)
+--        xsa = take n xs 
+--        x:xsb = drop n xs
 
 -- 4.5
 mapArv :: (a -> b) -> Arv a -> Arv b

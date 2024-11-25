@@ -56,4 +56,15 @@
   divisors(X, Y) :- Y * Y <= X, (0 is X mod Y; Y1 is Y + 1, divisors(X, Y1)).
 
 %gcd(+X, +Y, -G)
-  gcd()
+  gcd(X, 0, X) :- !.
+  gcd(X, Y, G) :-
+    Y > 0,
+    R is X mod Y,
+    gcd(Y, R, G).
+
+%lcm(+X, +Y, -M)
+  lcm(0, _, 0) :- !.
+  lcm(_, 0, 0) :- !.
+  lcm(X, Y, M) :-
+      gcd(X, Y, G),
+      M is (X * Y) // G.

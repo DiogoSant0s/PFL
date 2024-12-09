@@ -66,4 +66,3 @@
 
 %replace(+List1, +Index, ?Old, +New, ?List2)
     replace().
-

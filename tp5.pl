@@ -1,62 +1,4 @@
-male(frank).
-male(jay).
-male(javier).
-male(barb).
-male(phil).
-male(mitchel).
-male(joe).
-male(pameron).
-male(dylan).
-male(alex).
-male(luke).
-male(rexford).
-male(calhoun).
-male(george).
-
-female(grace).
-female(deDe).
-female(gloria).
-female(merle).
-female(claire).
-female(manny).
-female(cameron).
-female(bo).
-female(haley).
-female(lily).
-female(poppy).
-
-parent(grace,phil).
-parent(frank,phil).
-parent(deDe,claire).
-parent(jay,claire).
-parent(deDe,mitchell).
-parent(jay,mitchell).
-parent(jay,joe).
-parent(gloria,joe).
-parent(gloria,manny).
-parent(javier,manny).
-parent(barb,cameron).
-parent(merle,cameron).
-parent(barb,pameron).
-parent(merle,pameron).
-
-parent(phil,haley).
-parent(claire,haley).
-parent(phil,alex).
-parent(claire,alex).
-parent(phil,luke).
-parent(claire,luke).
-parent(mitchell,lily).
-parent(cameron,lily).
-parent(mitchell,rexford).
-parent(cameron,rexford).
-parent(pameron,calhoun).
-parent(bo,calhoun).
-
-parent(dylan,george).
-parent(haley,george).
-parent(dylan,poppy).
-parent(haley,poppy).
+:- consult('tp1.pl').
 
 %children(+Person, -Children)
     children(Person, Children) :- findall(Child, parent(Person, Child), Children).
@@ -74,21 +16,44 @@ parent(haley,poppy).
 %couples(-List)
     couples(List) :- findall(Couple, couple(Couple), Couples), sort(Couples, List).
 
-%spouse_children(+Person,  -SC)
+%spouse_children(+Person, -SC)
     spouse_children(Person, Spouse/Children) :- parent(Person, Child), parent(Spouse, Child), Person \= Spouse, findall(Child, parent(Person, Child), Children).
 
 %immediate_family(+Person, -PC)
     immediate_family(Person, Parents-SpousesChildren) :- findall(Parent, parent(Parent, Person), Parents), 
         findall(Spouse-Children, (parent(Person, Child), parent(Spouse, Child), Person \= Spouse, findall(Child, parent(Person, Child), Children)), SpousesChildren).
 
-del_dups([], []).
-del_dups([H|T1], List2) :- member(H, T1), !, del_dups(T1, List2).
-del_dups([H|T1], [H|T2]) :- del_dups(T1, T2).
+%del_dups(+List1, ?List2)
+    del_dups([], []).
+    del_dups([H|T1], List2) :- member(H, T1), !, del_dups(T1, List2).
+    del_dups([H|T1], [H|T2]) :- del_dups(T1, T2).
 
-count_children(Person, Count) :- findall(_, parent(Person, _), Children), length(Children, Count).
+%count_children(+Person, -Count)
+    count_children(Person, Count) :- findall(_, parent(Person, _), Children), length(Children, Count).
 
 %parents_of_two(-Parents)
     parents_of_two(Parents) :- findall(Person, (parent(Person, _), count_children(Person, Count), Count >= 2), ParentsList), del_dups(ParentsList, Parents).
+
+%teachers(-Teachers)
+    teachers(Teachers) :- findall(Teacher, teaches(_, Teacher), Teachers1), del_dups(Teachers1, Teachers).
+
+%students_of(+Teacher, -Students)
+    students_of(Teacher, Students) :- findall(Student, student_of_professor(Student, Teacher), Students1), del_dups(Students1, Students).
+
+%teachers_of(+Student, -Teachers)
+    teachers_of(Student, Teachers) :- findall(Teacher, student_of_professor(Student, Teacher), Teachers).
+
+%common_courses(+Student1, +Student2, -Courses)
+    common_courses(Student1, Student2, Courses) :- findall(Course, (attends(Course, Student1), attends(Course, Student2)), CommonCourses), del_dups(CommonCourses, Courses).
+
+%more_than_one_course(-L)
+    more_than_one_course(L) :- findall(Student, students_in_multiple_courses(Student), L1), del_dups(L1, L).
+
+%strangers(-L)
+    strangers(L) :- findall((S1, S2), (attends(_, S1), attends(_, S2), S1 \= S2, common_courses(S1, S2, Courses), Courses = []), L1), del_dups(L1, L).
+
+%good_groups(-L)
+    good_groups(L) :- findall(S1, (attends(_, S1), attends(_, S2), S1 \= S2, common_courses(S1, S2, Courses), length(Courses, N), N > 1), L1), del_dups(L1, L).
 
 %class(Course, ClassType, DayOfWeek, Time, Duration) 
     class(pfl, t, '2 Tue', 15, 2).
@@ -102,23 +67,30 @@ count_children(Person, Count) :- findall(_, parent(Person, _), Children), length
     class(rc, t, '5 Fri', 10.5, 2).
     class(rc, tp, '1 Mon', 8.5, 2).
 
+%translate_day(DayOfWeek, NewDayOfWeek)
+    translate_day('1 Mon', 'Mon').
+    translate_day('2 Tue', 'Tue').
+    translate_day('3 Wed', 'Wed').
+    translate_day('4 Thu', 'Thu').
+    translate_day('5 Fri', 'Fri').
+
 %same_day(+Course1,  +Course2)
     same_day(Course1, Course2) :- class(Course1, _, Day, _, _), class(Course2, _, Day, _, _), Course1 \= Course2.
 
 %daily_courses(+Day, -Courses)
-    daily_courses(Day, Courses) :- setof(Course, Course^Type^Time^Duration^class(Course, Type, Day, Time, Duration), Courses).
+    daily_courses(Day, Courses) :- translate_day(DayInternal, Day), setof(Course, Course^Type^Time^Duration^class(Course, Type, DayInternal, Time, Duration), Courses).
 
 %short_classes(-L)
-    short_classes(L) :- findall(UC-Day/Time, (class(UC, _, Day, Time, Duration), Duration < 2), L).
+    short_classes(L) :- findall(UC-Day/Time, (class(UC, _, InternalDay, Time, Duration), Duration < 2, translate_day(InternalDay, Day)), L).
 
 %course_classes(+Course, -Classes)
-    course_classes(Course, Classes) :- findall(Day/Time-Type, class(Course, Type, Day, Time, _), Classes).
+    course_classes(Course, Classes) :- findall(Day/Time-Type, (class(Course, Type, InternalDay, Time, _), translate_day(InternalDay, Day)), Classes).
 
 %courses(-L)
     courses(Courses) :- setof(Course, Type^Day^Time^Duration^class(Course, Type, Day, Time, Duration), Courses).
 
 %get_classes(-SortedClasses)
-    get_classes(SortedClasses) :- setof((DayOfWeek, Time, Course, ClassType, Duration), class(Course, ClassType, DayOfWeek, Time, Duration), SortedClasses).
+    get_classes(SortedClasses) :- setof((TranslatedDay, Time, Course, ClassType, Duration), (class(Course, ClassType, DayOfWeek, Time, Duration), translate_day(DayOfWeek, TranslatedDay)), SortedClasses).
 
 %print_class(+(DayOfWeek, Time, Course, ClassType, Duration))
     print_class((DayOfWeek, Time, Course, ClassType, Duration)) :- format('~w (~w): ~w at ~w for ~w hours~n', [Course, ClassType, DayOfWeek, Time, Duration]).
@@ -133,3 +105,49 @@ count_children(Person, Count) :- findall(_, parent(Person, _), Children), length
     find_class :- writeln('Enter the day of the week (e.g., \'2 Tue\'): '), read(Day), writeln('Enter the time (as a number, e.g., 10.5): '), read(Time),
         (class_ongoing(Day, Time, Course, ClassType, Start, Duration) -> format('Class found: ~w (~w), starts at ~w, duration ~w hours~n', [Course, ClassType, Start, Duration]); 
         writeln('No class is taking place at this time.')).
+
+%flight(origin, destination, company, code, hour, duration) 
+    flight(porto, lisbon, tap, tp1949, 1615, 60).
+    flight(lisbon, madrid, tap, tp1018, 1805, 75).
+    flight(lisbon, paris, tap, tp440, 1810, 150).
+    flight(lisbon, london, tap, tp1366, 1955, 165).
+    flight(london, lisbon, tap, tp1361, 1630, 160).
+    flight(porto, madrid, iberia, ib3095, 1640, 80).
+    flight(madrid, porto, iberia, ib3094, 1545, 80).
+    flight(madrid, lisbon, iberia, ib3106, 1945, 80).
+    flight(madrid, paris, iberia, ib3444, 1640, 125).
+    flight(madrid, london, iberia, ib3166, 1550, 145).
+    flight(london, madrid, iberia, ib3163, 1030, 140).
+    flight(porto, frankfurt, lufthansa, lh1177, 1230, 165).
+
+%get_all_nodes(-ListOfAirports)
+
+%most_diversified(-Company)
+
+%find_flights(+Origin, +Destination, -Flights)
+
+%find_flights_bfs(+Origin, +Destination, -Flights)
+
+%find_all_flights (+Origin, +Destination, -ListOfFlights)
+
+%find_flights_least_stops(+Origin, +Destination, -ListOfFlights)
+
+%find_flights_stops(+Origin, +Destination, +Stops, -ListFlights)
+
+%find_circular_trip (+MaxSize, +Origin, -Cycle)
+
+%find_circular_trips(+MaxSize, +Origin, -Cycles)
+
+%strongly_connected(+ListOfNodes)
+
+%strongly_connected_components(-Components)
+
+%bridges(-ListOfBridges)
+
+%unifiable(+L1, +Term, -L2)
+
+%missionaries_and_cannibals(-Moves)
+
+%steps(+Steps, -N, -L)
+
+%sliding_puzzle(+Initial, -Moves)
